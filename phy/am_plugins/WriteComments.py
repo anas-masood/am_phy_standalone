@@ -1,6 +1,19 @@
 """
 Add/remove/extend/clear cluster comments
 
+Selection scopes
+----------------
+Three actions in the Edit menu differ only in *which* selection they
+write to:
+
+    alt+w       (:com)   clusters selected in the cluster view only
+    ctrl+w      (:coms)  clusters selected in the similarity view only
+    ctrl+alt+w  (:coma)  all selected clusters in both views
+
+The prompt is pre-filled with the comments shared by the clusters of that
+scope, and if nothing is selected in the scope the action does nothing
+(it never falls back to the other view).
+
 On selection of one cluster the complete comment string is available in
 a user input prompt and can be modified and will be replaced. If
 selecting multiple clusters, the shared comments will be provided in the
@@ -92,9 +105,24 @@ class WriteComments(IPlugin):
         logger.debug("Available short hand notations are %s.",
                      ', '.join(self.pairs.keys()))
 
-    def load_comments(self, controller):
+    def selected_ids(self, controller, scope='cluster'):
+        """Cluster ids for a selection scope.
+
+        scope : {'cluster', 'similar', 'all'}
+            'cluster' - selection in the cluster view only
+            'similar' - selection in the similarity view only
+            'all'     - both views
+        """
+        sup = controller.supervisor
+        if scope == 'cluster':
+            return list(sup.selected_clusters or [])
+        elif scope == 'similar':
+            return list(sup.selected_similar or [])
+        return list(sup.selected or [])
+
+    def load_comments(self, controller, scope='all'):
         """Load selected comments a list of as sets"""
-        cluster_ids = controller.supervisor.selected
+        cluster_ids = self.selected_ids(controller, scope)
         if 'comment' not in controller.supervisor.fields:
             logger.debug('Comment field does not exist. Return empty list.')
             return []
@@ -116,10 +144,11 @@ class WriteComments(IPlugin):
         return chars, comments
 
     def attach_to_controller(self, controller):
-        def get_comments():
-            """Fetch common comments among selected clusters"""
-            logger.debug('Retrieving comments from selected clusters.')
-            comments = self.load_comments(controller)
+        def get_comments(scope='all'):
+            """Fetch common comments among the scoped selected clusters"""
+            logger.debug('Retrieving comments from selected clusters (%s).',
+                         scope)
+            comments = self.load_comments(controller, scope)
             logger.debug('Splitting comments.')
             chars, comments = self.split_comments(comments)
 
@@ -147,17 +176,20 @@ class WriteComments(IPlugin):
 
         @connect
         def on_gui_ready(sender, gui):
-            @controller.supervisor.actions.add(name='Add comment', alias='com',
-                                               shortcut='alt+w', prompt=True,
-                                               prompt_default=get_comments)
-            def Add_comment(*userinput):
-                """
-                Add comments to selected clusters, prepend with '~' to
-                remove comments, prepend with '!' to replace completely,
-                type '!' to clear all
-                """
-                logger.debug('Non-empty user input received.')
-                cluster_ids = controller.supervisor.selected
+
+            def _add_comment(scope, *userinput):
+                """Apply the comment edit to one selection scope."""
+                logger.debug('Non-empty user input received (%s).', scope)
+                cluster_ids = self.selected_ids(controller, scope)
+
+                # Nothing selected in this scope: do nothing rather than
+                # falling back to the other view.
+                if not cluster_ids:
+                    logger.info('No clusters selected in the %s view; '
+                                'no comment written.',
+                                'similarity' if scope == 'similar'
+                                else 'cluster')
+                    return
 
                 # Treat multiple arguments as single argument:
                 # Commas are kept, spaces represent the delimiter
@@ -175,13 +207,14 @@ class WriteComments(IPlugin):
 
                 # Clear comments
                 if not userinput:
-                    controller.supervisor.label('comment', None)
+                    controller.supervisor.label('comment', None,
+                                                cluster_ids=cluster_ids)
                     logger.info('Clear metadata_comment for clusters %s.',
                                 ', '.join(map(str, cluster_ids)))
                     return
 
                 # Otherwise replace/remove/merge with existing
-                comments_old = self.load_comments(controller)
+                comments_old = self.load_comments(controller, scope)
                 chars_old, comments_old = self.split_comments(comments_old)
 
                 # Extract short hand notations and custom comments
@@ -194,7 +227,12 @@ class WriteComments(IPlugin):
                     chars_new = set()
                 comments_new = set(comments_new).difference('')
 
-                assert len(cluster_ids) == len(comments_old) == len(chars_old)
+                # Guard instead of asserting: if the comment field does not
+                # exist yet, load_comments returns an empty list.
+                if not (len(cluster_ids) == len(comments_old)
+                        == len(chars_old)):
+                    chars_old = [set() for _ in cluster_ids]
+                    comments_old = [set() for _ in cluster_ids]
 
                 # Merge for each cluster with their previous comments
                 comments = []
@@ -218,9 +256,54 @@ class WriteComments(IPlugin):
 
                 if len(set(comments)) == 1:
                     logger.debug('Set the same comment to all clusters')
-                    controller.supervisor.label('comment', comments[0])
+                    controller.supervisor.label('comment', comments[0],
+                                                cluster_ids=cluster_ids)
                 else:
                     logger.debug('Set the comments individually')
                     for cid, comment in zip(cluster_ids, comments):
                         controller.supervisor.label('comment', comment,
                                                     cluster_ids=cid)
+
+                logger.info('Comment written to clusters %s.',
+                            ', '.join(map(str, cluster_ids)))
+
+            # ----------------------------------------------------------
+            # Three actions, one per selection scope. The alt+w action
+            # keeps the name 'Add comment' so ToggleModifier still finds
+            # it by name.
+            # ----------------------------------------------------------
+            @controller.supervisor.actions.add(
+                name='Add comment', alias='com', shortcut='alt+w',
+                prompt=True, prompt_default=lambda: get_comments('cluster'))
+            def Add_comment(*userinput):
+                """
+                Add comments to the clusters selected in the CLUSTER view,
+                prepend with '~' to remove comments, prepend with '!' to
+                replace completely, type '!' to clear all
+                """
+                _add_comment('cluster', *userinput)
+
+            @controller.supervisor.actions.add(
+                name='Add comment (similarity view)', alias='coms',
+                shortcut='ctrl+w', prompt=True,
+                prompt_default=lambda: get_comments('similar'))
+            def Add_comment_similar(*userinput):
+                """
+                Add comments to the clusters selected in the SIMILARITY
+                view only, prepend with '~' to remove comments, prepend
+                with '!' to replace completely, type '!' to clear all
+                """
+                _add_comment('similar', *userinput)
+
+            @controller.supervisor.actions.add(
+                name='Add comment (both views)', alias='coma',
+                shortcut='ctrl+alt+w', prompt=True,
+                prompt_default=lambda: get_comments('all'))
+            def Add_comment_all(*userinput):
+                """
+                Add comments to all selected clusters in BOTH the cluster
+                and similarity views, prepend with '~' to remove comments,
+                prepend with '!' to replace completely, type '!' to clear
+                all
+                """
+                _add_comment('all', *userinput)

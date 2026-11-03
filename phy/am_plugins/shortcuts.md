@@ -1,10 +1,11 @@
 |     Shortcut      |      Plugin      |   GUI View       |    Action
 | ----------------- | ---------------- | ---------------- | ----------------------
-| alt+1             | AssignQuality    | Cluster view     | Assign quality 1
-| alt+2             |                  |                  | Assign quality 2
-| alt+3             |                  |                  | Assign quality 3
-| alt+4             |                  |                  | Assign quality 4
-| alt+5             |                  |                  | Clear quality assignment
+| alt+1..4          | AssignQuality    | Cluster view     | Assign quality 1..4 (cluster view selection)
+| alt+5             |                  |                  | Clear quality assignment (cluster view selection)
+| ctrl+1..4         |                  | Similarity view  | Assign quality 1..4 (similarity view selection)
+| ctrl+5            |                  |                  | Clear quality assignment (similarity view selection)
+| ctrl+alt+1..4     |                  | Both views       | Assign quality 1..4 (all selected clusters)
+| ctrl+alt+5        |                  |                  | Clear quality assignment (all selected clusters)
 | alt+b             | EventMarker      | Amplitude view   | Toggle event markers
 | shift+alt+e       |                  |                  | Go to event
 | shift+alt+pgdown  | JumpInTrace      | Trace view       | Jump to next spike of any selected cluster
@@ -20,4 +21,7 @@
 | ctrl+shift+j      |                  |                  | Select similar clusters
 | d                 | SplitDuplicates  | Correlogram view | Visualize duplicates
 | alt+i             | SplitShortISI    |                  | Visualize short ISI
-| alt+w             | WriteComments    | Cluster view     | Add comment
+| alt+w             | WriteComments    | Cluster view     | Add comment (cluster view selection)
+| ctrl+w            |                  | Similarity view  | Add comment (similarity view selection)
+| ctrl+alt+w        |                  | Both views       | Add comment (all selected clusters)
+| alt+o             | StickyOrder      | Cluster view     | Toggle sticky ordering (on: sort by order; off: reset to id)
