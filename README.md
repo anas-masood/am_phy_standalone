@@ -1,3 +1,50 @@
+# am_phy_standalone
+
+Anas Masood's phy: [cortex-lab/phy](https://github.com/cortex-lab/phy) 2.0b1, with the MEA changes of
+[szapp/phy](https://github.com/szapp/phy) (branch `mea`), the fixes of
+[dimokaramanlis/phy-MEA](https://github.com/dimokaramanlis/phy-MEA) (undo and memory fixes, metadata saving, logging),
+and the plugins of [gollischlab/phy_plugins](https://github.com/gollischlab/phy_plugins) with Anas's own edits, in
+`phy/am_plugins/`.
+
+### Install
+
+In a conda environment with Python 3.7 (as in the original phy 2.0b1 instructions below):
+
+```bash
+pip install git+https://github.com/anas-masood/am_phy_standalone.git
+```
+
+or, to edit the code in place, `pip install -e .` from a clone.
+
+### Use the plugins
+
+The plugins are installed with the package. In `~/.phy/phy_config.py`:
+
+```python
+from phy.am_plugins import PLUGINS_DIR
+
+c = get_config()
+c.Plugins.dirs = [PLUGINS_DIR]
+c.TemplateGUI.plugins = ['MEAColumns', 'AssignQuality', 'EventMarker', 'JumpInTrace', 'MarkChannel', 'Recluster',
+                         'ReorderColumns', 'SelectionOptions', 'SplitShortISI', 'WriteComments', 'TraceMarkChannel',
+                         'StickyOrder', 'WaveformThr', 'CoincidentSpikes', 'MarkDirty']
+```
+
+Shortcuts are listed in `phy/am_plugins/shortcuts.md`.
+
+### Pull updates from the sources
+
+```bash
+git remote add dimo https://github.com/dimokaramanlis/phy-MEA.git     # colleague's fork
+git remote add plugins https://github.com/gollischlab/phy_plugins.git  # plugins
+git pull dimo mea
+git subtree pull --prefix=phy/am_plugins plugins master
+```
+
+The original phy README follows.
+
+---
+
 # phy: interactive visualization and manual spike sorting of large-scale ephys data
 
 [![Build Status](https://travis-ci.org/cortex-lab/phy.svg)](https://travis-ci.org/cortex-lab/phy)
