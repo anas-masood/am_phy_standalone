@@ -3,8 +3,9 @@
 Anas Masood's phy: [cortex-lab/phy](https://github.com/cortex-lab/phy) 2.0b1, with the MEA changes of
 [szapp/phy](https://github.com/szapp/phy) (branch `mea`), the fixes of
 [dimokaramanlis/phy-MEA](https://github.com/dimokaramanlis/phy-MEA) (undo and memory fixes, metadata saving, logging),
-and the plugins of [gollischlab/phy_plugins](https://github.com/gollischlab/phy_plugins) with Anas's own edits, in
-`phy/am_plugins/`.
+and Anas's phy plugins in `phy/am_plugins/`. The plugins started from
+[gollischlab/phy_plugins](https://github.com/gollischlab/phy_plugins) (master `bf555de`, history kept) and are
+maintained here on their own since 2026-11-03.
 
 ### Install
 
@@ -32,13 +33,11 @@ c.TemplateGUI.plugins = ['MEAColumns', 'AssignQuality', 'EventMarker', 'JumpInTr
 
 Shortcuts are listed in `phy/am_plugins/shortcuts.md`.
 
-### Pull updates from the sources
+### Pull phy fixes from the colleague's fork
 
 ```bash
-git remote add dimo https://github.com/dimokaramanlis/phy-MEA.git     # colleague's fork
-git remote add plugins https://github.com/gollischlab/phy_plugins.git  # plugins
+git remote add dimo https://github.com/dimokaramanlis/phy-MEA.git
 git pull dimo mea
-git subtree pull --prefix=phy/am_plugins plugins master
 ```
 
 The original phy README follows.
